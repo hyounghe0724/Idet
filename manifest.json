@@ -1,0 +1,14 @@
+{
+  "name": "규형 식단 트래커",
+  "short_name": "식단",
+  "description": "리컴프 → 린매스업 식단 트래커",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f6f3ec",
+  "theme_color": "#2f6f4f",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

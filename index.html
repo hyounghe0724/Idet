@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>규형 식단 트래커</title>
+<meta name="theme-color" content="#2f6f4f" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="식단" />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap');
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: #f6f3ec; }
+body {
+  font-family: ui-sans-serif, -apple-system, 'Apple SD Gothic Neo', sans-serif;
+  color: #2b2820;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+#app { max-width: 480px; margin: 0 auto; padding: 18px; }
+input:focus { outline: 2px solid #2f6f4f; outline-offset: 1px; }
+details summary::-webkit-details-marker { display: none; }
+button { font-family: inherit; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+.eyebrow { font-size: 10px; letter-spacing: 0.18em; color: #2f6f4f; font-weight: 700; margin-bottom: 6px; }
+.title { font: 400 30px 'DM Serif Display', serif; margin: 0 0 4px; line-height: 1; }
+.sub { font-size: 12px; color: #8a8577; }
+.savePill { font-size: 11px; font-weight: 600; color: #8a8577; background: #eae5da; padding: 5px 10px; border-radius: 20px; white-space: nowrap; transition: all .3s; }
+.savePill.on { background: #2f6f4f; color: #fff; }
+
+.toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+.toggleBtn { flex: 1; border: none; background: #eae5da; color: #6b6658; padding: 12px 10px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; gap: 3px; transition: all .2s; }
+.toggleBtn.on { background: #2f6f4f; color: #fff; box-shadow: 0 3px 12px rgba(47,111,79,.3); }
+.toggleKcal { font-size: 11px; font-weight: 500; opacity: .85; }
+
+.dash { display: flex; gap: 16px; align-items: center; background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.macroCol { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+.macroTop { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.macroLabel { font-size: 13px; font-weight: 600; }
+.macroVal { font-size: 15px; font-weight: 700; }
+.macroTgt { font-size: 11px; font-weight: 500; color: #8a8577; }
+.barTrack { height: 7px; background: #eae5da; border-radius: 4px; overflow: hidden; }
+.barFill { height: 100%; border-radius: 4px; transition: width .5s ease; }
+
+.section { margin-bottom: 16px; }
+.sectionHead { font-size: 12px; font-weight: 700; letter-spacing: 0.05em; color: #8a8577; margin-bottom: 10px; text-transform: uppercase; }
+.meal { display: flex; gap: 12px; width: 100%; text-align: left; background: #fff; border: 1.5px solid #eae5da; border-radius: 14px; padding: 14px; margin-bottom: 8px; cursor: pointer; transition: all .2s; }
+.meal.on { background: #f0ede4; border-color: #cfe0d3; }
+.check { flex-shrink: 0; width: 24px; height: 24px; border-radius: 7px; border: 2px solid #d5cfc0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: #fff; margin-top: 2px; transition: all .2s; }
+.check.on { background: #2f6f4f; border-color: #2f6f4f; }
+.mealBody { flex: 1; min-width: 0; }
+.mealHead { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.mealTime { font-size: 15px; font-weight: 700; }
+.meal.on .mealTime { color: #8a8577; }
+.mealTag { font-size: 10px; font-weight: 700; color: #2f6f4f; background: #e0ece3; padding: 2px 7px; border-radius: 10px; }
+.mealKcal { font-size: 12px; font-weight: 600; color: #8a8577; margin-left: auto; }
+.mealItems { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.mealItem { font-size: 13px; color: #5a5648; line-height: 1.4; }
+.mealMacros { font-size: 11px; font-weight: 600; color: #a09a8a; letter-spacing: 0.03em; }
+
+.trackGrid { display: flex; gap: 8px; }
+.trackCell { flex: 1; background: #fff; border-radius: 12px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.trackLabel { font-size: 11px; font-weight: 600; color: #8a8577; display: block; margin-bottom: 6px; }
+.input { width: 100%; border: 1.5px solid #eae5da; border-radius: 8px; padding: 8px 9px; font-size: 16px; font-weight: 700; color: #2b2820; background: #faf8f3; margin-bottom: 6px; }
+.stepBarTrack { height: 5px; background: #eae5da; border-radius: 3px; overflow: hidden; margin-bottom: 5px; }
+.stepBarFill { height: 100%; background: #4a8fb0; border-radius: 3px; transition: width .4s; }
+.trackHint { font-size: 10px; color: #a09a8a; line-height: 1.3; }
+
+.details { background: #fff; border-radius: 12px; margin-bottom: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.summary { padding: 14px; font-size: 13px; font-weight: 700; cursor: pointer; color: #5a5648; list-style: none; }
+.refBody { padding: 0 14px 14px; }
+.refRow { display: flex; justify-content: space-between; font-size: 13px; padding: 7px 0; border-bottom: 1px solid #f0ede4; color: #5a5648; }
+.refP { font-weight: 700; color: #e2574c; }
+.note { font-size: 11.5px; color: #8a8577; line-height: 1.5; margin-top: 10px; padding: 10px; background: #f6f3ec; border-radius: 8px; }
+.outCard { padding: 10px 0; border-bottom: 1px solid #f0ede4; }
+.outPlace { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+.outGood { font-size: 12.5px; color: #5a5648; line-height: 1.5; margin-bottom: 3px; display: flex; gap: 6px; }
+.outBad { font-size: 12.5px; color: #8a8577; line-height: 1.5; display: flex; gap: 6px; }
+.outTagG { font-size: 10px; font-weight: 700; color: #2f6f4f; flex-shrink: 0; }
+.outTagB { font-size: 10px; font-weight: 700; color: #e2574c; flex-shrink: 0; }
+
+.transition { background: #2b2820; color: #f6f3ec; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+.transHead { font-size: 12px; font-weight: 700; letter-spacing: 0.05em; color: #a8c4b3; margin-bottom: 6px; }
+.transBody { font-size: 13px; line-height: 1.5; color: #e8e4da; }
+.footer { font-size: 11.5px; color: #a09a8a; text-align: center; line-height: 1.5; padding: 4px 8px 20px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ── Plan data ────────────────────────────────────────────────
+const TARGETS = { training: { kcal: 2450, protein: 165, fat: 68, carb: 295 },
+                  rest:     { kcal: 2150, protein: 165, fat: 68, carb: 230 } };
+
+const MEALS = {
+  training: [
+    { id:"breakfast", time:"아침", kcal:450, p:36, f:15, c:40,
+      items:["닭가슴살 1팩 / 두부 반 모 / 그릭요거트 200g (로테)","오트밀 40g + 바나나 반 개"] },
+    { id:"lunch", time:"점심 · 컵라면", kcal:720, p:45, f:10, c:95, tag:"운동일",
+      items:["신라면 건면 컵 + 닭가슴살 1.5팩(150g)","즉석밥 한 공기","국물 반만 · 콩나물/파로 볼륨업"] },
+    { id:"workout", time:"운동 전후", kcal:350, p:28, f:3, c:55,
+      items:["프로틴 1스쿱","고구마 150g or 바나나"] },
+    { id:"dinner", time:"저녁", kcal:620, p:45, f:30, c:35,
+      items:["연어/고등어/닭다리살 150g","두부 반 모 + 야채","지방 담당 · 탄수 낮게"] },
+    { id:"extra", time:"여유분", kcal:350, p:24, f:10, c:40,
+      items:["프로틴 1스쿱","그릭요거트 or 견과 + 과일"] },
+  ],
+  rest: [
+    { id:"breakfast", time:"아침", kcal:450, p:36, f:15, c:40,
+      items:["닭가슴살 1팩 / 두부 반 모 / 그릭요거트 200g (로테)","오트밀 40g + 바나나 반 개"] },
+    { id:"lunch", time:"점심 · 컵라면", kcal:420, p:45, f:10, c:50, tag:"쉬는 날",
+      items:["신라면 건면 컵 + 닭가슴살 1.5팩(150g)","밥 생략 (탄수 컷)","국물 반만"] },
+    { id:"workout", time:"간식", kcal:350, p:28, f:3, c:55,
+      items:["프로틴 1스쿱","고구마 150g or 바나나"] },
+    { id:"dinner", time:"저녁", kcal:620, p:45, f:30, c:35,
+      items:["연어/고등어/닭다리살 150g","두부 반 모 + 야채"] },
+    { id:"extra", time:"여유분", kcal:350, p:24, f:10, c:40,
+      items:["프로틴 1스쿱","그릭요거트 or 견과 + 과일"] },
+  ],
+};
+
+const PROTEIN_SOURCES = [
+  { name:"닭가슴살 1팩 (100~110g)", p:22 },
+  { name:"프로틴 1스쿱", p:24 },
+  { name:"그릭요거트 200g", p:20 },
+  { name:"두부 반 모", p:12 },
+  { name:"계란 1개", p:6 },
+];
+
+const EATING_OUT = [
+  { place:"서브웨이", best:"로스트치킨 + 더블미트 + 위트브레드 + 야채 풀", avoid:"마요·랜치·베이컨·플랫브레드" },
+  { place:"편의점", best:"건면 컵 + 스팀닭 / 삼각김밥 · 프로틴음료", avoid:"라면 단독 (단백질 텅 빔)" },
+  { place:"맥도날드", best:"에그맥머핀 2개 or 단품 + 제로콜라", avoid:"맥크리스피·맥스파이시 (튀김)" },
+];
+
+const MACROS = [
+  { key:"p", label:"단백질", tkey:"protein", color:"#e2574c" },
+  { key:"f", label:"지방", tkey:"fat", color:"#e8a13a" },
+  { key:"c", label:"탄수", tkey:"carb", color:"#4a8fb0" },
+];
+
+// ── State (localStorage) ─────────────────────────────────────
+const todayKey = () => new Date().toISOString().slice(0,10);
+const STORE = "diet:" + todayKey();
+
+let state = { mode:"training", checked:{}, steps:"", weight:"", waist:"" };
+try {
+  const raw = localStorage.getItem(STORE);
+  if (raw) state = Object.assign(state, JSON.parse(raw));
+} catch(e){}
+
+let saveTimer = null;
+function save() {
+  try { localStorage.setItem(STORE, JSON.stringify(state)); } catch(e){}
+  const pill = document.querySelector(".savePill");
+  if (pill) {
+    pill.textContent = "저장됨"; pill.classList.add("on");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => { pill.textContent = todayKey(); pill.classList.remove("on"); }, 1200);
+  }
+}
+
+// ── Render ───────────────────────────────────────────────────
+function consumed() {
+  const meals = MEALS[state.mode];
+  return meals.reduce((a,m) => {
+    if (state.checked[m.id]) { a.kcal+=m.kcal; a.p+=m.p; a.f+=m.f; a.c+=m.c; }
+    return a;
+  }, { kcal:0, p:0, f:0, c:0 });
+}
+
+function ring(value, target) {
+  const r=52, C=2*Math.PI*r, p=Math.min(1,value/target), over=value>target;
+  const remaining=Math.max(0,target-value);
+  return `<svg width="140" height="140" viewBox="0 0 140 140">
+    <circle cx="70" cy="70" r="${r}" fill="none" stroke="#eae5da" stroke-width="11"/>
+    <circle cx="70" cy="70" r="${r}" fill="none" stroke="${over?'#e2574c':'#2f6f4f'}" stroke-width="11"
+      stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-p)}"
+      transform="rotate(-90 70 70)" style="transition:stroke-dashoffset .5s ease,stroke .3s"/>
+    <text x="70" y="63" text-anchor="middle" style="font:700 30px 'DM Serif Display',serif;fill:#2b2820">${value}</text>
+    <text x="70" y="82" text-anchor="middle" style="font:500 11px ui-sans-serif;fill:#8a8577;letter-spacing:.05em">/ ${target} kcal</text>
+    <text x="70" y="99" text-anchor="middle" style="font:600 10px ui-sans-serif;fill:${over?'#e2574c':'#2f6f4f'}">${over?('+'+(value-target)+' 초과'):(remaining+' 남음')}</text>
+  </svg>`;
+}
+
+function render() {
+  const meals = MEALS[state.mode];
+  const t = TARGETS[state.mode];
+  const con = consumed();
+  const stepGoal = 8000;
+  const stepPct = state.steps ? Math.min(100, Math.round(Number(state.steps)/stepGoal*100)) : 0;
+  const pct = (v,tt) => Math.min(100, Math.round(v/tt*100));
+
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="header">
+      <div>
+        <div class="eyebrow">RECOMP · PHASE 1 / 2</div>
+        <h1 class="title">규형 식단 트래커</h1>
+        <div class="sub">체지방 19.4% → 15% · 목표 12주 · 5×5 병행</div>
+      </div>
+      <div class="savePill">${todayKey()}</div>
+    </div>
+
+    <div class="toggle">
+      <button class="toggleBtn ${state.mode==='training'?'on':''}" data-mode="training">운동하는 날<span class="toggleKcal">2,450</span></button>
+      <button class="toggleBtn ${state.mode==='rest'?'on':''}" data-mode="rest">쉬는 날<span class="toggleKcal">2,150 · 밥 컷</span></button>
+    </div>
+
+    <div class="dash">
+      <div>${ring(con.kcal, t.kcal)}</div>
+      <div class="macroCol">
+        ${MACROS.map(m => `
+          <div>
+            <div class="macroTop">
+              <span class="macroLabel">${m.label}</span>
+              <span class="macroVal">${con[m.key]}<span class="macroTgt"> / ${t[m.tkey]}g</span></span>
+            </div>
+            <div class="barTrack"><div class="barFill" style="width:${pct(con[m.key],t[m.tkey])}%;background:${m.color}"></div></div>
+          </div>`).join("")}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sectionHead">오늘의 끼니</div>
+      ${meals.map(m => {
+        const on = !!state.checked[m.id];
+        return `<button class="meal ${on?'on':''}" data-meal="${m.id}">
+          <div class="check ${on?'on':''}">${on?'✓':''}</div>
+          <div class="mealBody">
+            <div class="mealHead">
+              <span class="mealTime">${m.time}</span>
+              ${m.tag?`<span class="mealTag">${m.tag}</span>`:''}
+              <span class="mealKcal">${m.kcal} kcal</span>
+            </div>
+            <div class="mealItems">${m.items.map(i=>`<div class="mealItem">${i}</div>`).join("")}</div>
+            <div class="mealMacros">P${m.p} · F${m.f} · C${m.c}</div>
+          </div>
+        </button>`;
+      }).join("")}
+    </div>
+
+    <div class="section">
+      <div class="sectionHead">오늘 기록</div>
+      <div class="trackGrid">
+        <div class="trackCell">
+          <label class="trackLabel">걸음 수</label>
+          <input class="input" id="in-steps" inputmode="numeric" placeholder="0" value="${state.steps}">
+          <div class="stepBarTrack"><div class="stepBarFill" style="width:${stepPct}%"></div></div>
+          <div class="trackHint">목표 8,000보 ${stepPct>=100?'· 달성 ✓':'· '+stepPct+'%'}</div>
+        </div>
+        <div class="trackCell">
+          <label class="trackLabel">체중 (kg)</label>
+          <input class="input" id="in-weight" inputmode="decimal" placeholder="81.4" value="${state.weight}">
+          <div class="trackHint">리컴프는 거의 안 변함 · 참고용</div>
+        </div>
+        <div class="trackCell">
+          <label class="trackLabel">허리둘레 (cm)</label>
+          <input class="input" id="in-waist" inputmode="decimal" placeholder="—" value="${state.waist}">
+          <div class="trackHint">제일 정확한 지표 · 줄면 성공</div>
+        </div>
+      </div>
+    </div>
+
+    <details class="details">
+      <summary class="summary">단백질 소스 · 내 닭가슴살 100g = P22</summary>
+      <div class="refBody">
+        ${PROTEIN_SOURCES.map(s=>`<div class="refRow"><span>${s.name}</span><span class="refP">P${s.p}</span></div>`).join("")}
+        <div class="note">완조리 제품이라 밀도 낮음 → 프로틴 하루 2스쿱으로 165g 사수. 여유되면 생닭 직접 굽기(100g당 P31).</div>
+      </div>
+    </details>
+
+    <details class="details">
+      <summary class="summary">외식 · 편의점 가이드</summary>
+      <div class="refBody">
+        ${EATING_OUT.map(e=>`<div class="outCard">
+          <div class="outPlace">${e.place}</div>
+          <div class="outGood"><span class="outTagG">택</span>${e.best}</div>
+          <div class="outBad"><span class="outTagB">피</span>${e.avoid}</div>
+        </div>`).join("")}
+        <div class="note">공통 3원칙 — ① 단백질 30g+ ② 튀김 피하기 ③ 세트·소스로 새는 지방 막기</div>
+      </div>
+    </details>
+
+    <div class="transition">
+      <div class="transHead">다음 단계 · 린매스업 전환 신호</div>
+      <div class="transBody">허리둘레 정리 + 인바디 15% 도달 → 칼로리 2,750으로 올려 근육 증량 시작</div>
+    </div>
+
+    <div class="footer">탄수 사이클링 · 운동일 밥 O, 쉬는 날 밥 X · 단백질 165g은 매일 사수</div>
+  `;
+
+  // events
+  app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => {
+    state.mode = b.dataset.mode; state.checked = {}; save(); render();
+  });
+  app.querySelectorAll("[data-meal]").forEach(b => b.onclick = () => {
+    const id = b.dataset.meal; state.checked[id] = !state.checked[id]; save(); render();
+  });
+  const bind = (id, key, clean) => {
+    const el = document.getElementById(id);
+    if (el) el.oninput = () => { state[key] = clean(el.value); save();
+      // update only bars without full re-render to keep focus
+      if (id === "in-steps") {
+        const sp = state.steps ? Math.min(100, Math.round(Number(state.steps)/8000*100)) : 0;
+        const fill = el.parentElement.querySelector(".stepBarFill");
+        const hint = el.parentElement.querySelector(".trackHint");
+        if (fill) fill.style.width = sp + "%";
+        if (hint) hint.textContent = "목표 8,000보 " + (sp>=100?"· 달성 ✓":"· "+sp+"%");
+      }
+    };
+  };
+  bind("in-steps", "steps", v => v.replace(/\D/g,""));
+  bind("in-weight", "weight", v => v.replace(/[^\d.]/g,""));
+  bind("in-waist", "waist", v => v.replace(/[^\d.]/g,""));
+}
+
+render();
+
+// ── Service worker (offline) ─────────────────────────────────
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
